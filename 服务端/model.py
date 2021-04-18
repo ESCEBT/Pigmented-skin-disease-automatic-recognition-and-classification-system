@@ -1,108 +1,100 @@
 # -*- coding: <encoding name> -*-
 """
-自定义模型MFFNet(Multiple Feature Fusion Network)
+加载模型.
 """
 from __future__ import print_function, division
+from torchvision.models import resnet152, inception_v3
 import torch.nn as nn
-import torch.nn.functional as f
+import pretrainedmodels # pip install pretrainedmodels
+from efficientnet_pytorch import EfficientNet # pip install --upgrade efficientnet-pytorch
+from torchsummary import summary
 import torch
-from torchvision.models import vgg16, densenet121
 
 ################################################################################
-# 自定义模型MFFNet(Multiple Feature Fusion Network)
+# 加载Resnet152模型，输入为224x224, 论文地址 https://arxiv.org/pdf/1512.03385v1.pdf
 ################################################################################
-class MFFNet(nn.Module):
+def resnet(pretrained = True):
     """
-    自定义模型MFFNet(Multiple Feature Fusion Network)
+    加载Resnet152模型
+
+    :param
+        pretrained(bool) -- 是否预训练
+    :return
+        输出为7的Resnet152模型
     """
-    def __init__(self, num_classes = 7):
-        super(MFFNet, self).__init__()
+    # 加载模型
+    model = resnet152(pretrained = pretrained)
 
-        self.features = nn.Sequential(*(list(vgg16().children())[0][ : -8]))
+    # 修改模型输出为7
+    fc_features = model.fc.in_features
+    model.fc = nn.Linear(fc_features, 7)
 
-        self.bb = nn.Sequential(
-                        nn.MaxPool2d(kernel_size = 2, stride = 2),
-                        _BasicBlock(512),
-                        _BasicConv2d(512, 256, kernel_size = 3, stride = 1, padding = 1),
-
-                        nn.MaxPool2d(kernel_size = 2, stride = 2),
-                        _BasicBlock(256),
-                        _BasicConv2d(256, 128, kernel_size = 3, stride = 1, padding = 1),
-
-                        nn.AdaptiveAvgPool2d((1, 1))
-                        )
-
-        self.classifier = nn.Sequential( \
-                        nn.Linear(128, num_classes)
-                        )
-
-        # initialize weight of layers
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.xavier_normal_(m.weight)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.constant_(m.weight, 0)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.InstanceNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-
-    def forward(self, x):
-        # N x 3 x 224 x 224
-        x = self.features(x)
-        # N x 512 x 28 x 28
-        x = self.bb(x)
-        # N x 128 x 1 x 1
-        x = x.view(x.size(0), -1)
-        # N x 128
-        x = self.classifier(x)
-        # N x num_classes
-        x = f.softmax(x, dim = 1)
-
-        return x
-
-'''
-achieve basicblock which consists three layers
-'''
-class _BasicBlock(nn.Module):
-
-    def __init__(self, in_channels):
-        super(_BasicBlock, self).__init__()
-
-        self.bc_1 = _BasicConv2d(in_channels, in_channels, kernel_size = 3, stride = 1, padding = 1)
-        self.bc_2 = _BasicConv2d(in_channels, in_channels, kernel_size = 3, stride = 1, padding = 1)
-        self.bc_3 = _BasicConv2d(in_channels, in_channels, kernel_size = 3, stride = 1, padding = 1)
+    return model
 
 
-    def forward(self, x):
-        bc_1 = self.bc_1(x)
-        bc_2 = self.bc_2(x)
-        bc_2 = x + bc_2
-        bc_3 = self.bc_3(bc_2)
-        bc_3 = bc_3 + bc_1
-        return bc_3
+################################################################################
+# 加载InceptionV3模型，输入为299X299, 论文地址 https://arxiv.org/pdf/1512.00567v3.pdf
+################################################################################
+def inception(pretrained = True):
+    """
+       加载InceptionV3模型
 
-'''
-conv -> bn -> relu
-'''
-class _BasicConv2d(nn.Module):
+       :param
+           pretrained(bool) -- 是否预训练
+       :return
+           输出为7的InceptionV3模型
+       """
+    # 加载模型
+    model = inception_v3(pretrained = pretrained)
 
-    def __init__(self, in_channels, out_channels, **kwargs):
-        super(_BasicConv2d, self).__init__()
+    # 修改模型输出为7
+    fc_features = model.fc.in_features
+    model.fc = nn.Linear(fc_features, 7)
+    fc_features = model.AuxLogits.fc.in_features
+    model.AuxLogits.fc = nn.Linear(fc_features, 7)
 
-        self.bn = nn.BatchNorm2d(in_channels)
-        # self.instance_norm = nn.InstanceNorm2d(out_channels)
-        self.relu = nn.ReLU(True)
-        self.conv = nn.Conv2d(in_channels, out_channels, bias = False, **kwargs)
+    return model
 
-    def forward(self, x):
-        x = self.bn(x)
-        # x = self.instance_norm(x)
-        x = self.relu(x)
-        x = self.conv(x)
-        return x
+
+################################################################################
+# 加载EfficientNet模型，输入为224X224, 论文地址 https://arxiv.org/pdf/1905.11946.pdf
+################################################################################
+def efficient(pretrained = True):
+    """
+       加载EfficientNet模型
+
+       :param
+           pretrained(bool) -- 是否预训练
+       :return
+           输出为7的EfficientNet模型
+       """
+    # 加载模型
+    if pretrained:
+        model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=7)
+    else:
+        model = EfficientNet.from_name('efficientnet-b7')
+        # 修改模型输出为7
+        fc_features = model._fc.in_features
+        model._fc = nn.Linear(fc_features, 7)
+
+    return model
+
+
+################################################################################
+# 函数入口
+################################################################################
+if __name__ == '__main__':
+    # 选择在cpu或cuda运行
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # # 可视化Resnet152
+    # model = resnet(pretrained=False).to(device)
+    # summary(model, (3, 224, 224))
+
+    # # 可视化InceptionV3
+    # model = inception(pretrained=False).to(device)
+    # summary(model, (3, 299, 299))
+
+    # 可视化EfficientNet
+    model = efficient(pretrained=False).to(device)
+    summary(model, (3, 224, 224))

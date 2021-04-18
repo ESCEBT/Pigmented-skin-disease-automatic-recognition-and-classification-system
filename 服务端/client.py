@@ -23,7 +23,7 @@ def client(path):
     }
 
     # 模拟客户端请求
-    results = requests.post('https://www.ponma.cn:8086/process',
+    results = requests.post('http://localhost:8086/process',
                              files = files)
 
     # 显示预测结果
@@ -37,5 +37,5 @@ def client(path):
 if __name__ == '__main__':
     ## 模拟客户端请求 ##
     # 图片地址
-    path = 'datas/images/ISIC_0024306.jpg'
+    path = 'Upload/ISIC_0024306.jpg'
     client(path)
