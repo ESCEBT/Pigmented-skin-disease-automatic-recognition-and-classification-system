@@ -79,7 +79,7 @@ def show_dateset_info():
         无返回值，直接打印结果
     """
     # 各类别名称
-    names = ('MEL', 'NV', 'BCC', 'AKIEC', 'BKL', 'DF', 'VASC')
+    names = ('MEL-黑素瘤', 'NV-黑素细胞痣', 'BCC-基底细胞癌', 'AKIEC-光化性角化病', 'BKL-良心角化病', 'DF-皮肤纤维瘤', 'VASC-血管病变')
     # 路径字典
     datas = {'traindataset' : 'Data/train_data.txt', 'testdataset' : 'Data/test_data.txt'}
 
@@ -147,12 +147,12 @@ def crop_image():
 ################################################################################
 if __name__ == '__main__':
     # # 图像、标签csv文件存储目录地址
-    # path = 'Data'
+    path = 'Data'
     # # 划分数据集
-    # divide_dataset(path)
+    divide_dataset(path)
 
     # # 显示训练集、测试集各类别分布情况
-    # show_dateset_info()
+    show_dateset_info()
 
     # 裁剪图片
-    crop_image()
+    # crop_image()
